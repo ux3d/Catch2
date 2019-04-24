@@ -6,6 +6,7 @@
 [Tag aliases](#tag-aliases)<br>
 [BDD-style test cases](#bdd-style-test-cases)<br>
 [Type parametrised test cases](#type-parametrised-test-cases)<br>
+[Signature based parametrised test cases](#signature-based-parametrised-test-cases)<br>
 
 While Catch fully supports the traditional, xUnit, style of class-based fixtures containing test case methods this is not the preferred style.
 
@@ -190,6 +191,89 @@ TEMPLATE_PRODUCT_TEST_CASE("Product with differing arities", "[template][product
 _While there is an upper limit on the number of types you can specify
 in single `TEMPLATE_TEST_CASE` or `TEMPLATE_PRODUCT_TEST_CASE`, the limit
 is very high and should not be encountered in practice._
+
+
+## Signature based parametrised test cases
+
+In addition to [type parametrised test cases](#type-parametrised-test-cases) Catch2 also supports
+signature base parametrised test cases, in form of `TEMPLATE_TEST_CASE_SIG` and `TEMPLATE_PRODUCT_TEST_CASE_SIG`.
+These test cases have similar syntax like [type parametrised test cases](#type-parametrised-test-cases), with one
+additional positional argument which specifies the signature.
+
+### Signature
+Signature has some strict rules for these tests cases to work properly:
+* signature with multiple template parameters e.g. `typename T, size_t S` must have this format in test case declaration
+  `((typename T, size_t S), T, S)`
+* signature with variadic template arguments e.g. `typename T, size_t S, typename...Ts` must have this format in test case declaration
+  `((typename T, size_t S, typename...Ts), T, S, Ts...)`
+* signature with single non type template parameter e.g. `int V` must have this format in test case declaration `((int V), V)`
+* signature with single type template parameter e.g. `typename T` should not be used as it is in fact `TEMPLATE_TEST_CASE`
+
+Currently Catch2 support up to 11 template parameters in signature
+
+### Examples
+
+* **TEMPLATE_TEST_CASE_SIG(** _test name_ , _tags_,  _signature_, _type1_, _type2_, ..., _typen_ **)**
+
+Inside `TEMPLATE_TEST_CASE_SIG` test case you can use the names of template parameters as defined in _signature_. 
+
+```cpp
+TEMPLATE_TEST_CASE_SIG("TemplateTestSig: vectors can be sized and resized", "[vector][template][nttp]", ((typename TestType, int V), TestType, V), (int,5), (float,4), (std::string,15), ((std::tuple<int, float>), 6)) {
+
+    std::vector<TestType> v(V);
+
+    REQUIRE(v.size() == V);
+    REQUIRE(v.capacity() >= V);
+
+    SECTION("resizing bigger changes size and capacity") {
+        v.resize(2 * V);
+
+        REQUIRE(v.size() == 2 * V);
+        REQUIRE(v.capacity() >= 2 * V);
+    }
+    SECTION("resizing smaller changes size but not capacity") {
+        v.resize(0);
+
+        REQUIRE(v.size() == 0);
+        REQUIRE(v.capacity() >= V);
+
+        SECTION("We can use the 'swap trick' to reset the capacity") {
+            std::vector<TestType> empty;
+            empty.swap(v);
+
+            REQUIRE(v.capacity() == 0);
+        }
+    }
+    SECTION("reserving bigger changes capacity but not size") {
+        v.reserve(2 * V);
+
+        REQUIRE(v.size() == V);
+        REQUIRE(v.capacity() >= 2 * V);
+    }
+    SECTION("reserving smaller does not change size or capacity") {
+        v.reserve(0);
+
+        REQUIRE(v.size() == V);
+        REQUIRE(v.capacity() >= V);
+    }
+}
+```
+
+* **TEMPLATE_PRODUCT_TEST_CASE_SIG(** _test name_ , _tags_, _signature_, (_template-type1_, _template-type2_, ..., _template-typen_), (_template-arg1_, _template-arg2_, ..., _template-argm_) **)**
+
+```cpp
+
+template<typename T, size_t S>
+struct Bar {
+    size_t size() { return S; }
+};
+
+TEMPLATE_PRODUCT_TEST_CASE_SIG("A Template product test case with array signature", "[template][product][nttp]", ((typename T, size_t S), T, S), (std::array, Bar), ((int, 9), (float, 42))) {
+    TestType x;
+    REQUIRE(x.size() > 0);
+}
+```
+
 
 ---
 
