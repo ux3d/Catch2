@@ -54,14 +54,6 @@ namespace Catch {
             return std::string();
         }
 
-        std::string fileNameTag(const std::vector<std::string> &tags) {
-            auto it = std::find_if(begin(tags),
-                                   end(tags),
-                                   [] (std::string const& tag) {return tag.front() == '#'; });
-            if (it != tags.end())
-                return it->substr(1);
-            return std::string();
-        }
     } // anonymous namespace
 
     JunitReporter::JunitReporter( ReporterConfig const& _config )
