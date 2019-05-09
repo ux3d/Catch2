@@ -47,6 +47,13 @@ namespace Catch {
             return std::string(timeStamp);
         }
 
+        std::string namespacesTag(const std::vector<std::string> &tags) {
+            auto it = tags.begin();
+            if (it != tags.end())
+                return *it;
+            return std::string();
+        }
+
         std::string fileNameTag(const std::vector<std::string> &tags) {
             auto it = std::find_if(begin(tags),
                                    end(tags),
@@ -161,13 +168,11 @@ namespace Catch {
         std::string className = stats.testInfo.className;
 
         if( className.empty() ) {
-            className = fileNameTag(stats.testInfo.tags);
-            if ( className.empty() )
+            className = namespacesTag(stats.testInfo.tags);
+            if ( className.empty() ) {
                 className = "global";
+            }
         }
-
-        if ( !m_config->name().empty() )
-            className = m_config->name() + "." + className;
 
         writeSection( className, "", rootSection );
     }
